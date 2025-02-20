@@ -17,7 +17,8 @@ public @interface SClass {
         CRAFT_BUKKIT("org.bukkit.craftbukkit.%version%."),
         // use in don't supported server
         // need to call the method of NMSClass.Type#setPrefix to set prefix value if you use this type.
-        OTHER("");
+        OTHER(""),
+        NULL("");
 
         private String prefix;
 
