@@ -21,11 +21,5 @@
             <artifactId>byte-buddy</artifactId>
             <version>1.17.1</version>
         </dependency>
-        <!-- CraftBukkit -->
-        <dependency>
-            <groupId>org.spigotmc</groupId>
-            <artifactId>minecraft-server</artifactId>
-            <version>1.20.1-R0.1-SNAPSHOT</version>
-        </dependency>
     </dependencies>
 </project>
