@@ -1,4 +1,4 @@
-package net.minecraft.server.v1_12_R0;
+package net.minecraft.server;
 
 import me.xiaoying.sproxy.SProxy;
 import me.xiaoying.sproxy.annotation.*;
@@ -9,8 +9,8 @@ public abstract class SEntity implements SProxy {
 //    public SEntity(@SConstructorParameter(index = 1) String version, @SConstructorParameter(index = 0) String name) {
 //
 //    }
-    @SConstructor
-    public abstract Manager getManager(@SConstructorParameter(index = 1) String version, @SConstructorParameter(index = 0) String name);
+    @SConstructor(target = "net.minecraft.server.v1_12_R0.Manager")
+    public abstract Object getManager(@SConstructorParameter(index = 1) String version, @SConstructorParameter(index = 0) String name);
 
     @SField(fieldName = "asd")
     public String name;

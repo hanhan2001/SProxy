@@ -37,7 +37,11 @@ public class SProxyProvider {
             throw new IllegalArgumentException("class of " + clazz.getName() + " need @SClass annotation.");
 
         // get target class
-        Class<?> target = this.getClass().getClassLoader().loadClass(classAnnotation.type().getClassName(classAnnotation.className(), this.version));
+        Class<?> target;
+        if (classAnnotation.type().getClassName(classAnnotation.className(), this.version).isEmpty())
+            target = null;
+        else
+            target = this.getClass().getClassLoader().loadClass(classAnnotation.type().getClassName(classAnnotation.className(), this.version));
 
         // byte buddy
         DynamicType.Builder<T> subclass = new ByteBuddy().subclass(clazz);
@@ -65,8 +69,10 @@ public class SProxyProvider {
 
         // methods
         for (Method declaredMethod : clazz.getDeclaredMethods()) {
-            subclass = this.setConstructorMethod(subclass, declaredMethod, target, instance);
-            subclass = this.setFiledMethod(subclass, declaredMethod, target, instance);
+            if (declaredMethod.getAnnotation(SConstructor.class) != null)
+                subclass = this.setConstructorMethod(subclass, declaredMethod);
+            else if (declaredMethod.getAnnotation(SFieldMethod.class) != null)
+                subclass = this.setFiledMethod(subclass, declaredMethod, target, instance);
         }
 
         DynamicType.Unloaded<T> make = subclass.make();
@@ -82,11 +88,13 @@ public class SProxyProvider {
         return t;
     }
 
-    private <T> DynamicType.Builder<T>  setConstructorMethod(DynamicType.Builder<T> subclass, Method method, Class<?> target, Object instance) {
+    private <T> DynamicType.Builder<T>  setConstructorMethod(DynamicType.Builder<T> subclass, Method method) {
         SConstructor annotation = method.getAnnotation(SConstructor.class);
 
         if (annotation == null)
             return subclass;
+
+        String target = annotation.target();
 
         Map<Integer, Integer> map = new HashMap<>();
         Class<?>[] classes = new Class<?>[method.getParameters().length];
@@ -120,7 +128,7 @@ public class SProxyProvider {
         subclass = method1.intercept(new Implementation.Simple((methodVisitor, context, methodDescription) -> {
             methodVisitor.visitCode();
 
-            methodVisitor.visitTypeInsn(Opcodes.NEW, target.getName().replace('.', '/'));
+            methodVisitor.visitTypeInsn(Opcodes.NEW, target.replace('.', '/'));
             methodVisitor.visitInsn(Opcodes.DUP);
 
             StringBuilder stringClasses = new StringBuilder();
@@ -130,7 +138,7 @@ public class SProxyProvider {
             });
 
             methodVisitor.visitMethodInsn(Opcodes.INVOKESPECIAL,
-                    target.getName().replace('.', '/'),
+                    target.replace('.', '/'),
                     "<init>",
                     "(" + stringClasses + ")V",
                     false);
