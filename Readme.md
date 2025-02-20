@@ -103,25 +103,22 @@ public class Main() {
         }
         
         // 处理玩家发包
-        
-        
-        
-        // 这里要说一下，如果多版本中数据包的位置不同...好吧，我后面会加一个指定包路径的
     }
 }
 
 class Packet implements SProxy {
     // 这里参数我都是乱写的，和 nms 中的数据包实例化参数不一样，只能做参考用
+    // @SConstructor 中 target 指的是实例化对象的 class 路径
     // @SConstructorParameter中 index 指的是当前修饰的传参参数是 PacketPlayOutEntityMetadata 实例化的第几个参数，这意味着通过 SProxy 实例化的对象 需要的参数顺序可以随意更改
     // 假设 PacketPlayOutEntityMetadata 有两个参数，此处的代码就是交换了两个参数的顺序
     // 在调用 Packet#get1_20_R1 方法时传参就是 String, int
     // 对应的会自动调用 PacketPlayOutEntityMetadata(int, String)
     // 同样的可以添加额外的参数，前提是不要使用注解，否则会当作 PacketPlayOutEntityMetadata 的实例化参数进行处理
-    @SConstructor
-    public PacketPlayOutEntityMetadata get1_20_R1(@SConstructorParameter(index = 1) String second, @SConstructorParameter(index = 0) int first)
+    @SConstructor(target = "net.minecraft.network.protocol.game.PacketPlayOutEntityMetadata")
+    public Object get1_20_R1(@SConstructorParameter(index = 1) String second, @SConstructorParameter(index = 0) int first)
         
     // 假设 1.8.1 版本的 PacketPlayOutEntityMetadata 只有一个参数，此处代码只能做参考
-	@SConstructor
-    public PacketPlayOutEntityMetadata get1_8_R1(@SConstructorParameter(index = 0) int first)
+    @SConstructor(target = "net.minecraft.PacketPlayOutEntityMetadata")
+    public Object get1_8_R1(@SConstructorParameter(index = 0) int first)
 }
 ```
