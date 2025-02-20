@@ -10,7 +10,7 @@ public abstract class SEntity implements SProxy {
 //
 //    }
     @SConstructor(target = "net.minecraft.server.v1_12_R0.Manager")
-    public abstract Object getManager(@SConstructorParameter(index = 1) String version, @SConstructorParameter(index = 0) String name);
+    public abstract Object getManager(@SParameter(index = 1) String version, @SParameter(index = 0) String name);
 
     @SField(fieldName = "asd")
     public String name;

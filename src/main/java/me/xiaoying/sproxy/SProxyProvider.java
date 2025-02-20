@@ -99,7 +99,7 @@ public class SProxyProvider {
         Map<Integer, Integer> map = new HashMap<>();
         Class<?>[] classes = new Class<?>[method.getParameters().length];
         for (Parameter parameter : method.getParameters()) {
-            SConstructorParameter anno = parameter.getAnnotation(SConstructorParameter.class);
+            SParameter anno = parameter.getAnnotation(SParameter.class);
 
             if (anno == null)
                 continue;
