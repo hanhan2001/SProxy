@@ -9,6 +9,7 @@ import net.bytebuddy.implementation.bytecode.ByteCodeAppender;
 import net.bytebuddy.jar.asm.Opcodes;
 import net.bytebuddy.matcher.ElementMatchers;
 
+import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -80,6 +81,7 @@ public class SProxyProvider {
 
         // new instance class when finished method handle
         DynamicType.Loaded<T> load = make.load(clazz.getClassLoader());
+        load.saveIn(new File("C:/Users/Administrator/Desktop"));
         T t = load.getLoaded().newInstance();
         t.getClass().getDeclaredMethod("setTemporary", Object.class).invoke(t, instance);
 
@@ -98,6 +100,7 @@ public class SProxyProvider {
 
         Map<Integer, Integer> map = new HashMap<>();
         Class<?>[] classes = new Class<?>[method.getParameters().length];
+        Map<Integer, String> truthMap = new HashMap<>();
         for (Parameter parameter : method.getParameters()) {
             SParameter anno = parameter.getAnnotation(SParameter.class);
 
@@ -105,6 +108,7 @@ public class SProxyProvider {
                 continue;
 
             classes[anno.index()] = parameter.getType();
+            truthMap.put(map.size(), anno.truthClass());
             map.put(map.size(), anno.index());
         }
 
@@ -145,7 +149,12 @@ public class SProxyProvider {
                 int paramIndex = entry.getValue();
                 methodVisitor.visitInsn(Opcodes.DUP);
                 methodVisitor.visitIntInsn(Opcodes.BIPUSH, index);
-                methodVisitor.visitLdcInsn(classes[paramIndex].getName());
+
+                if (truthMap.get(entry.getKey()) != null && !truthMap.get(entry.getKey()).isEmpty())
+                    methodVisitor.visitLdcInsn(truthMap.get(entry.getKey()));
+                else
+                    methodVisitor.visitLdcInsn(classes[paramIndex].getName());
+
                 methodVisitor.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;)Ljava/lang/Class;", false);
                 methodVisitor.visitInsn(Opcodes.AASTORE);
             }
@@ -178,6 +187,9 @@ public class SProxyProvider {
                 methodVisitor.visitInsn(Opcodes.DUP);
                 methodVisitor.visitIntInsn(Opcodes.BIPUSH, i);
                 methodVisitor.visitVarInsn(Opcodes.ALOAD, map.get(i) + 1);
+                if (truthMap.get(i) != null && !truthMap.get(i).isEmpty())
+                    methodVisitor.visitTypeInsn(Opcodes.CHECKCAST, truthMap.get(i).replace(".", "/"));
+
                 methodVisitor.visitInsn(Opcodes.AASTORE);
             }
 
@@ -204,6 +216,7 @@ public class SProxyProvider {
 
         Map<Integer, Integer> map = new HashMap<>();
         Class<?>[] classes = new Class<?>[method.getParameters().length];
+        Map<Integer, String> truthMap = new HashMap<>();
         for (Parameter parameter : method.getParameters()) {
             SParameter anno = parameter.getAnnotation(SParameter.class);
 
@@ -212,6 +225,7 @@ public class SProxyProvider {
 
             classes[anno.index()] = parameter.getType();
             map.put(map.size(), anno.index());
+            truthMap.put(map.size(), anno.truthClass());
         }
 
         for (int i = 0; i < classes.length; i++) {
@@ -241,6 +255,9 @@ public class SProxyProvider {
             map.keySet().forEach(index -> {
                 stringClasses.append(ClassUtils.getClassByteCodeName(classes[index]));
                 methodVisitor.visitVarInsn(Opcodes.ALOAD, map.get(index) + 1);
+
+                if (truthMap.get(index) != null && !truthMap.get(index).isEmpty())
+                    methodVisitor.visitTypeInsn(Opcodes.CHECKCAST, truthMap.get(index).replace(".", "/"));
             });
 
             methodVisitor.visitMethodInsn(Opcodes.INVOKESPECIAL,
