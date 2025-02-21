@@ -9,6 +9,7 @@ import net.bytebuddy.implementation.bytecode.ByteCodeAppender;
 import net.bytebuddy.jar.asm.Opcodes;
 import net.bytebuddy.matcher.ElementMatchers;
 
+import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -28,7 +29,6 @@ public class SProxyProvider {
     }
 
     public <T extends SProxy> T constructorClass(Class<T> clazz, Object instance) throws Exception {
-
         if (!SProxy.class.isAssignableFrom(clazz))
             throw new IllegalArgumentException("class of " + clazz.getName() + " need to extended " + SProxy.class.getName());
 
@@ -71,6 +71,8 @@ public class SProxyProvider {
         for (Method declaredMethod : clazz.getDeclaredMethods()) {
             if (declaredMethod.getAnnotation(SConstructor.class) != null)
                 subclass = this.setConstructorMethod(subclass, declaredMethod);
+            else if (declaredMethod.getAnnotation(SMethod.class) != null)
+                subclass = this.setMethod(subclass, declaredMethod, target, instance);
             else if (declaredMethod.getAnnotation(SFieldMethod.class) != null)
                 subclass = this.setFiledMethod(subclass, declaredMethod, target, instance);
         }
@@ -78,7 +80,9 @@ public class SProxyProvider {
         DynamicType.Unloaded<T> make = subclass.make();
 
         // new instance class when finished method handle
-        T t = make.load(clazz.getClassLoader()).getLoaded().newInstance();
+        DynamicType.Loaded<T> load = make.load(clazz.getClassLoader());
+        load.saveIn(new File("C:/Users/Administrator/Desktop"));
+        T t = load.getLoaded().newInstance();
         t.getClass().getDeclaredMethod("setTemporary", Object.class).invoke(t, instance);
 
         // filed handle
@@ -86,6 +90,110 @@ public class SProxyProvider {
             this.setFiled(t, declaredField, t, target);
 
         return t;
+    }
+
+    private <T> DynamicType.Builder<T> setMethod(DynamicType.Builder<T> subclass, Method method, Class<?> target, Object instance) throws Exception {
+        SMethod annotation = method.getAnnotation(SMethod.class);
+
+        if (annotation == null)
+            return subclass;
+
+        Map<Integer, Integer> map = new HashMap<>();
+        Class<?>[] classes = new Class<?>[method.getParameters().length];
+        for (Parameter parameter : method.getParameters()) {
+            SParameter anno = parameter.getAnnotation(SParameter.class);
+
+            if (anno == null)
+                continue;
+
+            classes[anno.index()] = parameter.getType();
+            map.put(map.size(), anno.index());
+        }
+
+        for (int i = 0; i < classes.length; i++) {
+            if (classes[i] != null)
+                continue;
+
+            if (i + 1 >= classes.length)
+                break;
+
+            for (int j = i; j < classes.length; j++) {
+                if (classes[j] == null)
+                    continue;
+
+                throw new RuntimeException("missing parameter " + i + " index in " + subclass.getClass().getSuperclass().getName() + method.getName());
+            }
+        }
+
+        DynamicType.Builder.MethodDefinition.ImplementationDefinition<T> method1 = subclass.method(ElementMatchers.named(method.getName()));
+
+        subclass = method1.intercept(new Implementation.Simple((methodVisitor, context, methodDescription) ->  {
+            methodVisitor.visitCode();
+
+            methodVisitor.visitLdcInsn(target.getName());
+            methodVisitor.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;)Ljava/lang/Class;", false);
+
+            methodVisitor.visitLdcInsn(annotation.methodName());
+
+            if (classes.length < 6)
+                methodVisitor.visitInsn(Opcodes.ICONST_0 + classes.length);
+            else
+                methodVisitor.visitIntInsn(Opcodes.BIPUSH, classes.length);
+
+            methodVisitor.visitTypeInsn(Opcodes.ANEWARRAY, "java/lang/Class");
+
+            for (Map.Entry<Integer, Integer> entry : map.entrySet()) {
+                int index = entry.getKey();
+                int paramIndex = entry.getValue();
+                methodVisitor.visitInsn(Opcodes.DUP);
+                methodVisitor.visitIntInsn(Opcodes.BIPUSH, index);
+                methodVisitor.visitLdcInsn(classes[paramIndex].getName());
+                methodVisitor.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;)Ljava/lang/Class;", false);
+                methodVisitor.visitInsn(Opcodes.AASTORE);
+            }
+
+            methodVisitor.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Class", "getDeclaredMethod", "(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;", false);
+            methodVisitor.visitVarInsn(Opcodes.ASTORE, classes.length + 1);
+            methodVisitor.visitVarInsn(Opcodes.ALOAD, classes.length + 1);
+            methodVisitor.visitInsn(Opcodes.ICONST_1);
+            methodVisitor.visitMethodInsn(Opcodes.INVOKEVIRTUAL,
+                    "java/lang/reflect/AccessibleObject",
+                    "setAccessible",
+                    "(Z)V",
+                    false);
+
+            methodVisitor.visitVarInsn(Opcodes.ALOAD, classes.length + 1);
+
+            methodVisitor.visitVarInsn(Opcodes.ALOAD, 0);
+
+            methodVisitor.visitFieldInsn(Opcodes.GETFIELD,
+                    context.getInstrumentedType().asErasure().getName().replace(".", "/"),
+                    "temporary",
+                    "Ljava/lang/Object;");
+
+            methodVisitor.visitTypeInsn(Opcodes.CHECKCAST, instance.getClass().getName().replace('.', '/'));
+
+            methodVisitor.visitIntInsn(Opcodes.BIPUSH, map.size());
+            methodVisitor.visitTypeInsn(Opcodes.ANEWARRAY, "java/lang/Object");
+
+            for (int i = 0; i < map.size(); i++) {
+                methodVisitor.visitInsn(Opcodes.DUP);
+                methodVisitor.visitIntInsn(Opcodes.BIPUSH, i);
+                methodVisitor.visitVarInsn(Opcodes.ALOAD, map.get(i) + 1);
+                methodVisitor.visitInsn(Opcodes.AASTORE);
+            }
+
+            methodVisitor.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/reflect/Method", "invoke", "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", false);
+
+            methodVisitor.visitInsn(Opcodes.POP);
+
+            methodVisitor.visitInsn(Opcodes.RETURN);
+            methodVisitor.visitMaxs(Math.max(map.size() + 3, 6), classes.length + 2);
+            methodVisitor.visitEnd();
+            return new ByteCodeAppender.Size(Math.max(map.size() + 3, 6), classes.length + 2);
+        }));
+
+        return subclass;
     }
 
     private <T> DynamicType.Builder<T>  setConstructorMethod(DynamicType.Builder<T> subclass, Method method) {
