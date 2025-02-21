@@ -20,4 +20,7 @@ public abstract class SEntity implements SProxy {
 
     @SFieldMethod(filedName = "asd", type = SFieldMethod.Type.SETTER)
     public abstract void setName(String name);
+
+    @SMethod(methodName = "test")
+    public abstract void test(@SParameter(index = 1) String suffix, @SParameter(index = 0) String prefix);
 }

@@ -12,4 +12,11 @@ public class Manager {
     public Manager(String name, int version) {
 
     }
+
+    public void test(String prefix, String suffix) {
+        System.out.println("!!!!!!!!!!!!!!!!!!!");
+        System.out.println("prefix: " + prefix);
+        System.out.println("suffix: " + suffix);
+        System.out.println("!!!!!!!!!!!!!!!!!!!");
+    }
 }

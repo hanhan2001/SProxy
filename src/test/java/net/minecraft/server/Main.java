@@ -15,6 +15,10 @@ public class Main {
             System.out.println(sEntity.getName());
             System.out.println(sEntity.name);
             sEntity.getManager("15.15.1", "测试");
+
+            System.out.println("\n\n\n");
+
+            sEntity.test("Suffix", "Prefix");
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
