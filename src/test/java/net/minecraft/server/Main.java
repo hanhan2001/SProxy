@@ -2,6 +2,7 @@ package net.minecraft.server;
 
 import me.xiaoying.sproxy.SProxyProvider;
 import net.minecraft.server.v1_12_R0.Manager;
+import net.minecraft.server.v1_12_R0.TestEntity;
 
 public class Main {
     public static void main(String[] args) {
@@ -14,11 +15,17 @@ public class Main {
             sEntity.setName("ninin");
             System.out.println(sEntity.getName());
             System.out.println(sEntity.name);
-            sEntity.getManager("15.15.1", "测试");
+//            sEntity.getManager("15.15.1", "测试");
 
             System.out.println("\n\n\n");
 
             sEntity.test("Suffix", "Prefix");
+
+            System.out.println("\n\n\n");
+
+            // 假设通过特殊途径获取 TestEntity
+            TestEntity testEntity = new TestEntity("Hello World");
+            sEntity.init(testEntity);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

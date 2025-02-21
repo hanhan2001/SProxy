@@ -19,4 +19,8 @@ public class Manager {
         System.out.println("suffix: " + suffix);
         System.out.println("!!!!!!!!!!!!!!!!!!!");
     }
+
+    public void initEntity(TestEntity entity) {
+        System.out.println(entity.getName());
+    }
 }

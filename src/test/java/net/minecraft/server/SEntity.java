@@ -9,8 +9,8 @@ public abstract class SEntity implements SProxy {
 //    public SEntity(@SConstructorParameter(index = 1) String version, @SConstructorParameter(index = 0) String name) {
 //
 //    }
-    @SConstructor(target = "net.minecraft.server.v1_12_R0.Manager")
-    public abstract Object getManager(@SParameter(index = 1) String version, @SParameter(index = 0) String name);
+//    @SConstructor(target = "net.minecraft.server.v1_12_R0.Manager")
+//    public abstract Object getManager(@SParameter(index = 1) String version, @SParameter(index = 0) String name);
 
     @SField(fieldName = "asd")
     public String name;
@@ -23,4 +23,7 @@ public abstract class SEntity implements SProxy {
 
     @SMethod(methodName = "test")
     public abstract void test(@SParameter(index = 1) String suffix, @SParameter(index = 0) String prefix);
+
+    @SMethod(methodName = "initEntity")
+    public abstract void init(@SParameter(index = 0, truthClass = "net.minecraft.server.v1_12_R0.TestEntity") Object object);
 }
