@@ -15,6 +15,12 @@
 
 
 
+没有 maven 仓库，因为没搭，需要手动安装到本地 maven 仓库
+
+我也不知道怎么上传 mvnrepository
+
+
+
 ## 特点
 
 - Abstract class
