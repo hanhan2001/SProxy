@@ -15,7 +15,7 @@ public class Main {
             sEntity.setName("ninin");
             System.out.println(sEntity.getName());
             System.out.println(sEntity.name);
-//            sEntity.getManager("15.15.1", "测试");
+            sEntity.getManager("15.15.1", "测试");
 
             System.out.println("\n\n\n");
 
