@@ -7,7 +7,7 @@
 > SProxy 支持 abstract class 和 interface，相对而言更方便，同时意味着可以通过定义动态变量访问反射值。
 >
 >
-> 其实只是对比 NMSProxy，NMSProxy使用的是 Java Proxy，并且其机制较为僵硬，并且不支持跨版本的包 constructor
+> 其实只是对比 NMSProxy，NMSProxy使用的是 Java Proxy，并且其机制较为僵硬，不支持跨版本的包 constructor
 
 版本: `1.0.0`
 
@@ -130,6 +130,13 @@ public class Main() {
     }
 }
 
+// 这里假设 1.20.1 PacketPlayOutEntityMetadata 有参数需要 DataWather
+package net.minecraft.server.network.game;
+
+class DataWatcher {
+    // 具体代码
+}
+
 // 不需要指向任何包可以直接留空
 @SClass(type = SClass.Type.OTHER, className = "")
 class Packet implements SProxy {
@@ -137,11 +144,12 @@ class Packet implements SProxy {
     // @SConstructor 中 target 指的是实例化对象的 class 路径
     // @SParameter中 index 指的是当前修饰的传参参数是 PacketPlayOutEntityMetadata 实例化的第几个参数，这意味着通过 SProxy 实例化的对象 需要的参数顺序可以随意更改
     // 假设 PacketPlayOutEntityMetadata 有两个参数，此处的代码就是交换了两个参数的顺序
-    // 在调用 Packet#get1_20_R1 方法时传参就是 String, int
+    // 在调用 Packet#get1_20_R1 方法时传参就是 int, DataWatcher
+    // 要支持多版本就没办法直接指定 DataWatcher， SParameter 提供了 truthClass 对象，所以获取不到的对象直接设置成Object 类型，并且在 SParameter 设置对应的对象路径。 SProxy 处理这种参数时没指定 truthClass 则使用当前参数设置的类型，指定了 trurhClass 则会自动强转成 truthClass 指定对象
     // 对应的会自动调用 PacketPlayOutEntityMetadata(int, String)
     // 同样的可以添加额外的参数，前提是不要使用注解，否则会当作 PacketPlayOutEntityMetadata 的实例化参数进行处理
     @SConstructor(target = "net.minecraft.network.protocol.game.PacketPlayOutEntityMetadata")
-    public Object get1_20_R1(@SParameter(index = 1) String second, @SParameter(index = 0) int first);
+    public Object get1_20_R1(@SParameter(index = 1, truthClass="net.minecraft.server.network.game.DataWatcher") Object dataWatcher, @SParameter(index = 0) int first);
         
     // 假设 1.8.1 版本的 PacketPlayOutEntityMetadata 只有一个参数，此处代码只能做参考
     @SConstructor(target = "net.minecraft.PacketPlayOutEntityMetadata")
