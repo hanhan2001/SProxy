@@ -30,13 +30,17 @@
 
 ## 简单模板
 
+> 推荐去 src/test 目录中看示范代码，示范代码是能正常运行的
+
 ### NMS 对象
 
 ```java
 // 获取 minecraft v1.20.1 的 CraftPlayer
 
 import me.xiaoying.sproxy.SProxy;
-import me.xiaoying.sproxy.annotation.SClass;
+import me.xiaoying.sproxy.SproxyProvider;
+import me.xiaoying.sproxy.annotation.SClass;;
+import me.xiaoying.sproxy.annotation.SFieldMethod;
 
 public class Main {
     public static void main(String[] args) {
@@ -72,6 +76,11 @@ abstract class SPlayer implements SProxy {
 ### 多版本数据包
 
 ```java
+import me.xiaoying.sproxy.SProxy;
+import me.xiaoying.sproxy.SproxyProvider;
+import me.xiaoying.sproxy.annotation.SClass;
+import me.xiaoying.sproxy.annotation.SConstructor;
+
 public class Main() {
     public static void main(String[] agrs) {
         // 这个仓库考虑到不是所有人都写 Bukkit 插件，所以没有自动获取服务器版本
@@ -106,19 +115,58 @@ public class Main() {
     }
 }
 
+// 不需要指向任何包可以直接留空
+@SClass(type = SClass.Type.OTHER, className = "")
 class Packet implements SProxy {
     // 这里参数我都是乱写的，和 nms 中的数据包实例化参数不一样，只能做参考用
     // @SConstructor 中 target 指的是实例化对象的 class 路径
-    // @SConstructorParameter中 index 指的是当前修饰的传参参数是 PacketPlayOutEntityMetadata 实例化的第几个参数，这意味着通过 SProxy 实例化的对象 需要的参数顺序可以随意更改
+    // @SParameter中 index 指的是当前修饰的传参参数是 PacketPlayOutEntityMetadata 实例化的第几个参数，这意味着通过 SProxy 实例化的对象 需要的参数顺序可以随意更改
     // 假设 PacketPlayOutEntityMetadata 有两个参数，此处的代码就是交换了两个参数的顺序
     // 在调用 Packet#get1_20_R1 方法时传参就是 String, int
     // 对应的会自动调用 PacketPlayOutEntityMetadata(int, String)
     // 同样的可以添加额外的参数，前提是不要使用注解，否则会当作 PacketPlayOutEntityMetadata 的实例化参数进行处理
     @SConstructor(target = "net.minecraft.network.protocol.game.PacketPlayOutEntityMetadata")
-    public Object get1_20_R1(@SConstructorParameter(index = 1) String second, @SConstructorParameter(index = 0) int first)
+    public Object get1_20_R1(@SParameter(index = 1) String second, @SParameter(index = 0) int first);
         
     // 假设 1.8.1 版本的 PacketPlayOutEntityMetadata 只有一个参数，此处代码只能做参考
     @SConstructor(target = "net.minecraft.PacketPlayOutEntityMetadata")
-    public Object get1_8_R1(@SConstructorParameter(index = 0) int first)
+    public Object get1_8_R1(@SConstructorParameter(index = 0) int first);
 }
 ```
+
+### 调用方法
+
+```java
+import me.xiaoying.sproxy.SProxy;
+import me.xiaoying.sproxy.SproxyProvider;
+import me.xiaoying.sproxy.annotation.SClass;
+import me.xiaoying.sproxy.annotation.SMethod;
+
+public class Main() {
+    public static void main(String[] agrs) {
+        // 假设有一个实例化 manager 对象
+        Manager manager....
+        
+        // 这个仓库考虑到不是所有人都写 Bukkit 插件，所以没有自动获取服务器版本
+        // 如果想自动获取服务器版本可以参考我的 ServerBuild 仓库，里面有修改好的 SProxy
+        SproxyProvider provider = new SproxyProvider("v1_20_R0");
+        
+        // 需要注意的是这里传 manager 是因为需要一个参考对象
+        // CraftPlayer 需要参考数据是因为 CraftPlayer 内含本身含有数据并且 implements Player
+        // Bukkit 只能获取 Player 对象，所以要获取 CraftPlayer 就需要强转 Player 来得到
+        // 做 java 的其他开发时也是相同的道理，如果没有则不需要传递一个参考数据
+        Entity entity = provider.constructorClass(Entity.class, manager);
+        entity.runTest("Suffix", "Prefix");
+    }
+}
+
+@SClass(type = SClass.Type.NMS, className = "Manager")
+class Entity implements SProxy {
+    // 指定调用 net.minecraft.v1_20_R0.Manager 中的 test 方法
+    
+    // 同样的可以添加额外的参数，前提是不要使用注解，否则会当作 test 的传递参数进行处理
+    @SMethod(methodName = "test")
+    public abstract void runTest(@SParameter(index = 1) String suffix, @SParameter(index = 0) String prefix);
+}
+```
+
