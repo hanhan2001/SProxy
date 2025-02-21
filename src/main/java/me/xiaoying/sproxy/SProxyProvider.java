@@ -21,7 +21,7 @@ public class SProxyProvider {
     private final String version;
 
     public SProxyProvider() {
-        this.version = "";
+        this("");
     }
 
     public SProxyProvider(String version) {
@@ -127,7 +127,7 @@ public class SProxyProvider {
 
         DynamicType.Builder.MethodDefinition.ImplementationDefinition<T> method1 = subclass.method(ElementMatchers.named(method.getName()));
 
-        subclass = method1.intercept(new Implementation.Simple((methodVisitor, context, methodDescription) ->  {
+        subclass = method1.intercept(new Implementation.Simple((methodVisitor, context, methodDescription) -> {
             methodVisitor.visitCode();
 
             methodVisitor.visitLdcInsn(target.getName());
@@ -196,7 +196,7 @@ public class SProxyProvider {
         return subclass;
     }
 
-    private <T> DynamicType.Builder<T>  setConstructorMethod(DynamicType.Builder<T> subclass, Method method) {
+    private <T> DynamicType.Builder<T> setConstructorMethod(DynamicType.Builder<T> subclass, Method method) {
         SConstructor annotation = method.getAnnotation(SConstructor.class);
 
         if (annotation == null)
@@ -272,26 +272,38 @@ public class SProxyProvider {
         Field declaredField = target.getDeclaredField(name);
         declaredField.setAccessible(true);
 
-        // getter
-        if (type == SFieldMethod.Type.GETTER) {
-            subclass = method1.intercept(new Implementation.Simple((methodVisitor, context, methodDescription) -> {
-                methodVisitor.visitCode();
+        subclass = method1.intercept(new Implementation.Simple((methodVisitor, context, methodDescription) -> {
+            methodVisitor.visitCode();
 
-                methodVisitor.visitVarInsn(Opcodes.ALOAD, 0);
+            methodVisitor.visitLdcInsn(target.getName());
+            methodVisitor.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;)Ljava/lang/Class;", false);
 
-                methodVisitor.visitFieldInsn(Opcodes.GETFIELD,
-                        context.getInstrumentedType().asErasure().getName().replace(".", "/"),
-                        "temporary",
-                        "Ljava/lang/Object;");
+            methodVisitor.visitLdcInsn(filedAnnotation.filedName());
 
-                methodVisitor.visitTypeInsn(Opcodes.CHECKCAST, instance.getClass().getName().replace('.', '/'));
+            methodVisitor.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Class", "getDeclaredField", "(Ljava/lang/String;)Ljava/lang/reflect/Field;", false);
+            methodVisitor.visitVarInsn(Opcodes.ASTORE, 2);
+            methodVisitor.visitVarInsn(Opcodes.ALOAD, 2);
+            methodVisitor.visitInsn(Opcodes.ICONST_1);
+            methodVisitor.visitMethodInsn(Opcodes.INVOKEVIRTUAL,
+                    "java/lang/reflect/AccessibleObject",
+                    "setAccessible",
+                    "(Z)V",
+                    false);
 
-                String descriptor = ClassUtils.getClassByteCodeName(declaredField.getType());
+            methodVisitor.visitVarInsn(Opcodes.ALOAD, 2);
 
-                methodVisitor.visitFieldInsn(Opcodes.GETFIELD,
-                        instance.getClass().getName().replace('.', '/'),
-                        name,
-                        descriptor);
+            methodVisitor.visitVarInsn(Opcodes.ALOAD, 0);
+
+            methodVisitor.visitFieldInsn(Opcodes.GETFIELD,
+                    context.getInstrumentedType().asErasure().getName().replace(".", "/"),
+                    "temporary",
+                    "Ljava/lang/Object;");
+
+            // getter
+            if (filedAnnotation.type() == SFieldMethod.Type.GETTER) {
+
+                methodVisitor.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/reflect/Field", "get", "(Ljava/lang/Object;)Ljava/lang/Object;");
+                methodVisitor.visitTypeInsn(Opcodes.CHECKCAST, method.getReturnType().getName().replace(".", "/"));
 
                 Class<?> fieldType = declaredField.getType();
                 int returnType;
@@ -309,39 +321,19 @@ public class SProxyProvider {
                     returnType = Opcodes.ARETURN;
 
                 methodVisitor.visitInsn(returnType);
-                methodVisitor.visitMaxs(2, 2);
+                methodVisitor.visitMaxs(3, 3);
                 methodVisitor.visitEnd();
-                return new ByteCodeAppender.Size(2, 2);
-            }));
+                return new ByteCodeAppender.Size(3, 3);
+            }
 
-            return subclass;
-        }
-
-        // setter
-        subclass = method1.intercept(new Implementation.Simple((methodVisitor, context, methodDescription) -> {
-            methodVisitor.visitCode();
-
-            methodVisitor.visitVarInsn(Opcodes.ALOAD, 0);
-
-            methodVisitor.visitFieldInsn(Opcodes.GETFIELD,
-                    context.getInstrumentedType().asErasure().getName().replace(".", "/"),
-                    "temporary",
-                    "Ljava/lang/Object;");
-
-            methodVisitor.visitTypeInsn(Opcodes.CHECKCAST, instance.getClass().getName().replace('.', '/'));
+            // setter
             methodVisitor.visitVarInsn(Opcodes.ALOAD, 1);
 
-            String descriptor = ClassUtils.getClassByteCodeName(declaredField.getType());
-
-            methodVisitor.visitFieldInsn(Opcodes.PUTFIELD,
-                    instance.getClass().getName().replace('.', '/'),
-                    name,
-                    descriptor);
-
+            methodVisitor.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/reflect/Field", "set", "(Ljava/lang/Object;Ljava/lang/Object;)V");
             methodVisitor.visitInsn(Opcodes.RETURN);
-            methodVisitor.visitMaxs(2, 2);
+            methodVisitor.visitMaxs(3, 3);
             methodVisitor.visitEnd();
-            return new ByteCodeAppender.Size(2, 2);
+            return new ByteCodeAppender.Size(3, 3);
         }));
         return subclass;
     }
