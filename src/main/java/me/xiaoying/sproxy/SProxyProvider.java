@@ -81,7 +81,6 @@ public class SProxyProvider {
 
         // new instance class when finished method handle
         DynamicType.Loaded<T> load = make.load(clazz.getClassLoader());
-        load.saveIn(new File("C:/Users/Administrator/Desktop"));
         T t = load.getLoaded().newInstance();
         t.getClass().getDeclaredMethod("setTemporary", Object.class).invoke(t, instance);
 
