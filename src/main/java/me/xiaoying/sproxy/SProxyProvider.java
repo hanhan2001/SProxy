@@ -263,7 +263,6 @@ public class SProxyProvider {
             return subclass;
 
         String name = filedAnnotation.filedName();
-        SFieldMethod.Type type = filedAnnotation.type();
 
         DynamicType.Builder.MethodDefinition.ImplementationDefinition<T> method1 = subclass.method(ElementMatchers.named(method.getName()));
 
