@@ -9,7 +9,6 @@ import net.bytebuddy.implementation.bytecode.ByteCodeAppender;
 import net.bytebuddy.jar.asm.Opcodes;
 import net.bytebuddy.matcher.ElementMatchers;
 
-import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -81,7 +80,6 @@ public class SProxyProvider {
 
         // new instance class when finished method handle
         DynamicType.Loaded<T> load = make.load(clazz.getClassLoader());
-        load.saveIn(new File("C:/Users/Administrator/Desktop"));
         T t = load.getLoaded().newInstance();
         t.getClass().getDeclaredMethod("setTemporary", Object.class).invoke(t, instance);
 
