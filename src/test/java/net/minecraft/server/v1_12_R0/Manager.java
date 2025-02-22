@@ -20,7 +20,9 @@ public class Manager {
         System.out.println("!!!!!!!!!!!!!!!!!!!");
     }
 
-    public void initEntity(TestEntity entity) {
+    public TestEntity initEntity(TestEntity entity) {
         System.out.println(entity.getName());
+        entity.setName("Test");
+        return entity;
     }
 }

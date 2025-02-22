@@ -21,5 +21,5 @@ public abstract class SEntity implements SProxy {
     public abstract void test(@SParameter(index = 1) String suffix, @SParameter(index = 0) String prefix);
 
     @SMethod(methodName = "initEntity")
-    public abstract void init(@SParameter(index = 0, truthClass = "net.minecraft.server.v1_12_R0.TestEntity") Object object);
+    public abstract Object init(@SParameter(index = 0, truthClass = "net.minecraft.server.v1_12_R0.TestEntity") Object object);
 }

@@ -25,7 +25,8 @@ public class Main {
 
             // 假设通过特殊途径获取 TestEntity
             TestEntity testEntity = new TestEntity("Hello World");
-            sEntity.init(testEntity);
+            testEntity = (TestEntity) sEntity.init(testEntity);
+            System.out.println(testEntity.getName());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
