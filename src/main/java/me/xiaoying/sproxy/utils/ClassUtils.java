@@ -1,5 +1,7 @@
 package me.xiaoying.sproxy.utils;
 
+import net.bytebuddy.jar.asm.Opcodes;
+
 public class ClassUtils {
     /**
      * 获取 class 的字节码格式
@@ -32,5 +34,24 @@ public class ClassUtils {
             descriptor = "L" + clazz.getName().replace('.', '/') + ";";
 
         return descriptor;
+    }
+
+    public static int getReturnByObject(Object object) {
+        return ClassUtils.getReturnByClass(object.getClass());
+    }
+
+    public static int getReturnByClass(Class<?> clazz) {
+        if (clazz == void.class)
+            return Opcodes.RETURN;
+        else if (clazz == int.class || clazz == byte.class || clazz == short.class || clazz == char.class || clazz == boolean.class)
+            return Opcodes.IRETURN;
+        else if (clazz == long.class)
+            return Opcodes.LRETURN;
+        else if (clazz == float.class)
+            return Opcodes.FRETURN;
+        else if (clazz == double.class)
+            return Opcodes.DRETURN;
+        else
+            return Opcodes.ARETURN;
     }
 }

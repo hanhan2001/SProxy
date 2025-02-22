@@ -9,7 +9,6 @@ import net.bytebuddy.implementation.bytecode.ByteCodeAppender;
 import net.bytebuddy.jar.asm.Opcodes;
 import net.bytebuddy.matcher.ElementMatchers;
 
-import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -194,12 +193,20 @@ public class SProxyProvider {
 
             methodVisitor.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/reflect/Method", "invoke", "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", false);
 
-            methodVisitor.visitInsn(Opcodes.POP);
-
-            methodVisitor.visitInsn(Opcodes.RETURN);
-            methodVisitor.visitMaxs(Math.max(map.size() + 3, 6), classes.length + 2);
+            int stackSize;
+            int returnByClass = ClassUtils.getReturnByClass(method.getReturnType());
+            if (returnByClass == Opcodes.ARETURN) {
+                stackSize = 4;
+                methodVisitor.visitTypeInsn(Opcodes.CHECKCAST, method.getReturnType().getName().replace(".", "/"));
+                methodVisitor.visitInsn(returnByClass);
+            } else {
+                stackSize = 3;
+                methodVisitor.visitInsn(Opcodes.POP);
+                methodVisitor.visitInsn(Opcodes.RETURN);
+            }
+            methodVisitor.visitMaxs(Math.max(map.size() + stackSize, 6), classes.length + 2);
             methodVisitor.visitEnd();
-            return new ByteCodeAppender.Size(Math.max(map.size() + 3, 6), classes.length + 2);
+            return new ByteCodeAppender.Size(Math.max(map.size() + stackSize, 6), classes.length + 2);
         }));
 
         return subclass;
@@ -264,7 +271,7 @@ public class SProxyProvider {
                     "<init>",
                     "(" + stringClasses + ")V",
                     false);
-            // 返回实例化的 Manager 对象
+
             methodVisitor.visitInsn(Opcodes.ARETURN);
             methodVisitor.visitMaxs(4, 3);
             methodVisitor.visitEnd();
@@ -318,22 +325,7 @@ public class SProxyProvider {
                 methodVisitor.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/reflect/Field", "get", "(Ljava/lang/Object;)Ljava/lang/Object;");
                 methodVisitor.visitTypeInsn(Opcodes.CHECKCAST, method.getReturnType().getName().replace(".", "/"));
 
-                Class<?> fieldType = declaredField.getType();
-                int returnType;
-                if (fieldType == void.class)
-                    returnType = Opcodes.RETURN;
-                else if (fieldType == int.class || fieldType == byte.class || fieldType == short.class || fieldType == char.class || fieldType == boolean.class)
-                    returnType = Opcodes.IRETURN;
-                else if (fieldType == long.class)
-                    returnType = Opcodes.LRETURN;
-                else if (fieldType == float.class)
-                    returnType = Opcodes.FRETURN;
-                else if (fieldType == double.class)
-                    returnType = Opcodes.DRETURN;
-                else
-                    returnType = Opcodes.ARETURN;
-
-                methodVisitor.visitInsn(returnType);
+                methodVisitor.visitInsn(ClassUtils.getReturnByClass(declaredField.getType()));
                 methodVisitor.visitMaxs(3, 3);
                 methodVisitor.visitEnd();
                 return new ByteCodeAppender.Size(3, 3);
