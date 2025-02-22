@@ -197,7 +197,12 @@ public class SProxyProvider {
             int returnByClass = ClassUtils.getReturnByClass(method.getReturnType());
             if (returnByClass == Opcodes.ARETURN) {
                 stackSize = 4;
-                methodVisitor.visitTypeInsn(Opcodes.CHECKCAST, method.getReturnType().getName().replace(".", "/"));
+                String type;
+                if (!annotation.returnClass().isEmpty())
+                    type = annotation.returnClass().replace(".", "/");
+                else
+                    type = method.getReturnType().getName().replace(".", "/");
+                methodVisitor.visitTypeInsn(Opcodes.CHECKCAST, type);
                 methodVisitor.visitInsn(returnByClass);
             } else {
                 stackSize = 3;
