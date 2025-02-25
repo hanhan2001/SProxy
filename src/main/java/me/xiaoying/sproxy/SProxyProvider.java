@@ -9,6 +9,7 @@ import net.bytebuddy.implementation.bytecode.ByteCodeAppender;
 import net.bytebuddy.jar.asm.Opcodes;
 import net.bytebuddy.matcher.ElementMatchers;
 
+import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -18,6 +19,8 @@ import java.util.Map;
 
 public class SProxyProvider {
     private final String version;
+    private boolean debug = false;
+    private File outFile = new File(System.getProperty("user.dir"), "debug");
 
     public SProxyProvider() {
         this("");
@@ -25,6 +28,16 @@ public class SProxyProvider {
 
     public SProxyProvider(String version) {
         this.version = version;
+    }
+
+    public SProxyProvider debug(boolean enable) {
+        this.debug = enable;
+        return this;
+    }
+
+    public SProxyProvider setOutFile(File file) {
+        this.outFile = file;
+        return this;
     }
 
     public <T extends SProxy> T constructorClass(Class<T> clazz, Object instance) throws Exception {
@@ -73,13 +86,15 @@ public class SProxyProvider {
             else if (declaredMethod.getAnnotation(SMethod.class) != null)
                 subclass = this.setMethod(subclass, declaredMethod, target, instance);
             else if (declaredMethod.getAnnotation(SFieldMethod.class) != null)
-                subclass = this.setFiledMethod(subclass, declaredMethod, target, instance);
+                subclass = this.setFiledMethod(subclass, declaredMethod, target);
         }
 
         DynamicType.Unloaded<T> make = subclass.make();
 
         // new instance class when finished method handle
         DynamicType.Loaded<T> load = make.load(clazz.getClassLoader());
+        if (this.debug)
+            load.saveIn(this.outFile);
         T t = load.getLoaded().newInstance();
         t.getClass().getDeclaredMethod("setTemporary", Object.class).invoke(t, instance);
 
@@ -285,7 +300,7 @@ public class SProxyProvider {
         return subclass;
     }
 
-    private <T> DynamicType.Builder<T> setFiledMethod(DynamicType.Builder<T> subclass, Method method, Class<?> target, Object instance) throws Exception {
+    private <T> DynamicType.Builder<T> setFiledMethod(DynamicType.Builder<T> subclass, Method method, Class<?> target) throws Exception {
         SFieldMethod filedAnnotation = method.getAnnotation(SFieldMethod.class);
         if (filedAnnotation == null)
             return subclass;
