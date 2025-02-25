@@ -4,11 +4,14 @@ import me.xiaoying.sproxy.SProxyProvider;
 import net.minecraft.server.v1_12_R0.Manager;
 import net.minecraft.server.v1_12_R0.TestEntity;
 
+import java.io.File;
+
 public class Main {
     public static void main(String[] args) {
         Manager manager = new Manager("Name", "1.0.0");
 
         SProxyProvider provider = new SProxyProvider("v1_12_R0");
+        provider.debug(true);
         try {
             SEntity sEntity = provider.constructorClass(SEntity.class, manager);
             System.out.println(sEntity.getName());
