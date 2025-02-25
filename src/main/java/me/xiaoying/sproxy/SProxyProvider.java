@@ -95,6 +95,11 @@ public class SProxyProvider {
         for (Method declaredMethod : clazz.getDeclaredMethods()) {
             if (declaredMethod.getAnnotation(SConstructor.class) != null)
                 subclass = this.setConstructorMethod(subclass, declaredMethod);
+
+            // return if instance is null
+            if (instance == null)
+                break;
+
             else if (declaredMethod.getAnnotation(SMethod.class) != null)
                 subclass = this.setMethod(subclass, declaredMethod, target, instance);
             else if (declaredMethod.getAnnotation(SFieldMethod.class) != null)
