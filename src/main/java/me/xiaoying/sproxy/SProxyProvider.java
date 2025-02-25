@@ -30,11 +30,23 @@ public class SProxyProvider {
         this.version = version;
     }
 
+    /**
+     * Set proxy debug mode
+     *
+     * @param enable on / off
+     * @return SProxyProvider
+     */
     public SProxyProvider debug(boolean enable) {
         this.debug = enable;
         return this;
     }
 
+    /**
+     * Set proxy out classes' path
+     *
+     * @param file save folder
+     * @return SProxyProvider
+     */
     public SProxyProvider setOutFile(File file) {
         this.outFile = file;
         return this;
@@ -112,13 +124,14 @@ public class SProxyProvider {
             return subclass;
 
         Map<Integer, ParameterEntity> parameters = new HashMap<>();
-        for (Parameter parameter : method.getParameters()) {
+        for (int i = 0; i < method.getParameters().length; i++) {
+            Parameter parameter = method.getParameters()[i];
             SParameter anno = parameter.getAnnotation(SParameter.class);
 
             if (anno == null)
                 continue;
 
-            parameters.put(anno.index(), new ParameterEntity(anno.index(), anno.truthClass(), parameter.getType()));
+            parameters.put(anno.index(), new ParameterEntity(anno.index(), i + 1, anno.truthClass(), parameter.getType()));
         }
 
         for (int i = 0; i < parameters.size(); i++) {
@@ -157,12 +170,31 @@ public class SProxyProvider {
                 methodVisitor.visitInsn(Opcodes.DUP);
                 methodVisitor.visitIntInsn(Opcodes.BIPUSH, entry.getKey());
 
-                if (entry.getValue().getTruthClass() != null && !entry.getValue().getTruthClass().isEmpty())
-                    methodVisitor.visitLdcInsn(entry.getValue().getTruthClass());
-                else
-                    methodVisitor.visitLdcInsn(entry.getValue().getType().getName());
+                if (!entry.getValue().isPrimitive()) {
+                    if (entry.getValue().getTruthClass() != null && !entry.getValue().getTruthClass().isEmpty())
+                        methodVisitor.visitLdcInsn(entry.getValue().getTruthClass());
+                    else
+                        methodVisitor.visitLdcInsn(entry.getValue().getType().getName());
 
-                methodVisitor.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;)Ljava/lang/Class;", false);
+                    methodVisitor.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;)Ljava/lang/Class;", false);
+                } else {
+                    if (entry.getValue().getTypeExact() == int.class)
+                        methodVisitor.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/Integer", "TYPE", "Ljava/lang/Class;");
+                    else if (entry.getValue().getTypeExact() == long.class)
+                        methodVisitor.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/Long", "TYPE", "Ljava/lang/Class;");
+                    else if (entry.getValue().getTypeExact() == float.class)
+                        methodVisitor.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/Float", "TYPE", "Ljava/lang/Class;");
+                    else if (entry.getValue().getTypeExact() == double.class)
+                        methodVisitor.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/Double", "TYPE", "Ljava/lang/Class;");
+                    else if (entry.getValue().getTypeExact() == boolean.class)
+                        methodVisitor.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/Boolean", "TYPE", "Ljava/lang/Class;");
+                    else if (entry.getValue().getTypeExact() == byte.class)
+                        methodVisitor.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/Byte", "TYPE", "Ljava/lang/Class;");
+                    else if (entry.getValue().getTypeExact() == short.class)
+                        methodVisitor.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/Short", "TYPE", "Ljava/lang/Class;");
+                    else if (entry.getValue().getTypeExact() == char.class)
+                        methodVisitor.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/Character", "TYPE", "Ljava/lang/Class;");
+                }
                 methodVisitor.visitInsn(Opcodes.AASTORE);
             }
 
@@ -191,9 +223,33 @@ public class SProxyProvider {
             methodVisitor.visitTypeInsn(Opcodes.ANEWARRAY, "java/lang/Object");
 
             for (int i = 0; i < parameters.size(); i++) {
+                ParameterEntity entity = parameters.get(i);
                 methodVisitor.visitInsn(Opcodes.DUP);
                 methodVisitor.visitIntInsn(Opcodes.BIPUSH, i);
-                methodVisitor.visitVarInsn(parameters.get(i).getLoadOpcodes(), parameters.size());
+                methodVisitor.visitVarInsn(parameters.get(i).getLoadOpcodes(), parameters.get(i).getStackIndex());
+
+                switch (entity.getLoadOpcodes()) {
+                    case Opcodes.ILOAD:
+                        if (entity.getType() == Integer.class)
+                            methodVisitor.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
+                        else if (entity.getType() == Byte.class)
+                            methodVisitor.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Byte", "valueOf", "(B)Ljava/lang/Byte;", false);
+                        else if (entity.getType() == Short.class)
+                            methodVisitor.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Short", "valueOf", "(S)Ljava/lang/Short;", false);
+                        else if (entity.getType() == Character.class)
+                            methodVisitor.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Character", "valueOf", "(C)Ljava/lang/Character;", false);
+                        else if (entity.getType() == Boolean.class)
+                            methodVisitor.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
+
+                        break;
+                    case Opcodes.LLOAD:
+                        methodVisitor.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Long", "valueOf", "(I)Ljava/lang/Long;", false);
+                        break;
+                    case Opcodes.FLOAD:
+                        methodVisitor.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Float", "valueOf", "(I)Ljava/lang/Float;", false);
+                        break;
+                }
+
                 if (parameters.get(i).getTruthClass() != null && !parameters.get(i).getTruthClass().isEmpty())
                     methodVisitor.visitTypeInsn(Opcodes.CHECKCAST, parameters.get(i).getTruthClass().replace(".", "/"));
 
@@ -235,13 +291,14 @@ public class SProxyProvider {
         String target = annotation.target();
 
         Map<Integer, ParameterEntity> parameters = new HashMap<>();
-        for (Parameter parameter : method.getParameters()) {
+        for (int i = 0; i < method.getParameters().length; i++) {
+            Parameter parameter = method.getParameters()[i];
             SParameter anno = parameter.getAnnotation(SParameter.class);
 
             if (anno == null)
                 continue;
 
-            parameters.put(anno.index(), new ParameterEntity(anno.index(), anno.truthClass(), parameter.getType()));
+            parameters.put(anno.index(), new ParameterEntity(anno.index(), i + 1, anno.truthClass(), parameter.getType()));
         }
 
         for (int i = 0; i < parameters.size(); i++) {
@@ -269,8 +326,8 @@ public class SProxyProvider {
 
             StringBuilder stringClasses = new StringBuilder();
             for (Map.Entry<Integer, ParameterEntity> entry : parameters.entrySet()) {
-                stringClasses.append(ClassUtils.getClassByteCodeName(entry.getValue().getType()));
-                methodVisitor.visitVarInsn(entry.getValue().getLoadOpcodes(), parameters.size());
+                stringClasses.append(ClassUtils.getClassByteCodeName(entry.getValue().getTypeExact()));
+                methodVisitor.visitVarInsn(entry.getValue().getLoadOpcodes(), entry.getValue().getStackIndex());
 
                 if (entry.getValue().getTruthClass() != null && !entry.getValue().getTruthClass().isEmpty())
                     methodVisitor.visitTypeInsn(Opcodes.CHECKCAST, entry.getValue().getTruthClass().replace(".", "/"));
