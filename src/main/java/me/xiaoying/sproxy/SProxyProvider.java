@@ -98,7 +98,7 @@ public class SProxyProvider {
 
             // return if instance is null
             if (instance == null)
-                break;
+                continue;
 
             else if (declaredMethod.getAnnotation(SMethod.class) != null)
                 subclass = this.setMethod(subclass, declaredMethod, target, instance);
