@@ -22,7 +22,7 @@ public class Main {
 
             System.out.println("\n\n\n");
 
-            sEntity.test("Suffix", "Prefix");
+            sEntity.test("Suffix", 20);
 
             System.out.println("\n\n\n");
 

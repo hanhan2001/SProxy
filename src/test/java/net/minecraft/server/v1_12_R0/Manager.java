@@ -20,6 +20,13 @@ public class Manager {
         System.out.println("!!!!!!!!!!!!!!!!!!!");
     }
 
+    public void test(int prefix, String suffix) {
+        System.out.println("!!!!!!!!!!!!!!!!!!!");
+        System.out.println("prefix: " + prefix);
+        System.out.println("suffix: " + suffix);
+        System.out.println("!!!!!!!!!!!!!!!!!!!");
+    }
+
     public TestEntity initEntity(TestEntity entity) {
         System.out.println(entity.getName());
         entity.setName("Test");
