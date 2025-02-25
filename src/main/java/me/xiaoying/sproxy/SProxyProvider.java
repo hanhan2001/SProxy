@@ -3,9 +3,11 @@ package me.xiaoying.sproxy;
 import me.xiaoying.sproxy.annotation.*;
 import me.xiaoying.sproxy.utils.ClassUtils;
 import net.bytebuddy.ByteBuddy;
+import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.implementation.Implementation;
 import net.bytebuddy.implementation.bytecode.ByteCodeAppender;
+import net.bytebuddy.jar.asm.MethodVisitor;
 import net.bytebuddy.jar.asm.Opcodes;
 import net.bytebuddy.matcher.ElementMatchers;
 
@@ -70,8 +72,8 @@ public class SProxyProvider {
         // byte buddy
         DynamicType.Builder<T> subclass = new ByteBuddy().subclass(clazz);
 
-        subclass = subclass.defineField("temporary", Object.class, Modifier.PRIVATE);
-        subclass = subclass.defineMethod("setTemporary", void.class, Modifier.PUBLIC)
+        subclass = subclass.defineField("instance", Object.class, Modifier.PRIVATE);
+        subclass = subclass.defineMethod("setInstance", void.class, Modifier.PUBLIC)
                 .withParameters(Object.class)
                 .intercept(new Implementation.Simple((methodVisitor, context, methodDescription) -> {
                     methodVisitor.visitCode();
@@ -81,7 +83,7 @@ public class SProxyProvider {
 
                     methodVisitor.visitFieldInsn(Opcodes.PUTFIELD,
                             context.getInstrumentedType().asErasure().getName().replace(".", "/"),
-                            "temporary",
+                            "instance",
                             "Ljava/lang/Object;");
 
                     methodVisitor.visitInsn(Opcodes.RETURN);
@@ -90,6 +92,23 @@ public class SProxyProvider {
                     methodVisitor.visitEnd();
                     return new ByteCodeAppender.Size(2, 2);
                 }));
+
+        subclass = subclass.defineMethod("getInstance", Object.class, Modifier.PUBLIC).intercept(new Implementation.Simple((methodVisitor, context, methodDescription) -> {
+            methodVisitor.visitCode();
+            methodVisitor.visitVarInsn(Opcodes.ALOAD, 0);
+
+            methodVisitor.visitFieldInsn(Opcodes.GETFIELD,
+                    context.getInstrumentedType().asErasure().getName().replace(".", "/"),
+                    "instance",
+                    "Ljava/lang/Object;");
+
+            // 返回获取到的值
+            methodVisitor.visitInsn(Opcodes.ARETURN);
+
+            methodVisitor.visitMaxs(1, 1);
+            methodVisitor.visitEnd();
+            return new ByteCodeAppender.Size(1, 1);
+        }));
 
         // methods
         for (Method declaredMethod : clazz.getDeclaredMethods()) {
@@ -113,7 +132,7 @@ public class SProxyProvider {
         if (this.debug)
             load.saveIn(this.outFile);
         T t = load.getLoaded().newInstance();
-        t.getClass().getDeclaredMethod("setTemporary", Object.class).invoke(t, instance);
+        t.getClass().getDeclaredMethod("setInstance", Object.class).invoke(t, instance);
 
         // filed handle
         for (Field declaredField : t.getClass().getSuperclass().getDeclaredFields())
@@ -219,7 +238,7 @@ public class SProxyProvider {
 
             methodVisitor.visitFieldInsn(Opcodes.GETFIELD,
                     context.getInstrumentedType().asErasure().getName().replace(".", "/"),
-                    "temporary",
+                    "instance",
                     "Ljava/lang/Object;");
 
             methodVisitor.visitTypeInsn(Opcodes.CHECKCAST, instance.getClass().getName().replace('.', '/'));
@@ -388,7 +407,7 @@ public class SProxyProvider {
 
             methodVisitor.visitFieldInsn(Opcodes.GETFIELD,
                     context.getInstrumentedType().asErasure().getName().replace(".", "/"),
-                    "temporary",
+                    "instance",
                     "Ljava/lang/Object;");
 
             // getter
@@ -427,7 +446,7 @@ public class SProxyProvider {
         if (targetField.getType() != field.getType())
             throw new IllegalArgumentException("target field " + targetField.getType() + " not equals " + field.getType());
 
-        Field declaredField = newClass.getClass().getDeclaredField("temporary");
+        Field declaredField = newClass.getClass().getDeclaredField("instance");
         declaredField.setAccessible(true);
         Object object = declaredField.get(newClass);
 
