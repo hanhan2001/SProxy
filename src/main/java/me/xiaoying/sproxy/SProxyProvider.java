@@ -461,6 +461,18 @@ public class SProxyProvider {
         if (sfield == null)
             return t;
 
+        boolean supported = false;
+        for (String s : sfield.version()) {
+            if (!this.version.equalsIgnoreCase(s))
+                continue;
+
+            supported = true;
+            break;
+        }
+
+        if (!supported)
+            return t;
+
         field.setAccessible(true);
         Field targetField = target.getDeclaredField(sfield.fieldName());
         targetField.setAccessible(true);
