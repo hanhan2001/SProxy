@@ -3,11 +3,9 @@ package me.xiaoying.sproxy;
 import me.xiaoying.sproxy.annotation.*;
 import me.xiaoying.sproxy.utils.ClassUtils;
 import net.bytebuddy.ByteBuddy;
-import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.implementation.Implementation;
 import net.bytebuddy.implementation.bytecode.ByteCodeAppender;
-import net.bytebuddy.jar.asm.MethodVisitor;
 import net.bytebuddy.jar.asm.Opcodes;
 import net.bytebuddy.matcher.ElementMatchers;
 
@@ -63,11 +61,30 @@ public class SProxyProvider {
             throw new IllegalArgumentException("class of " + clazz.getName() + " need @SClass annotation.");
 
         // get target class
-        Class<?> target;
-        if (classAnnotation.type().getClassName(classAnnotation.className(), this.version).isEmpty())
-            target = null;
-        else
-            target = this.getClass().getClassLoader().loadClass(classAnnotation.type().getClassName(classAnnotation.className(), this.version));
+        Class<?> target = null;
+        for (String s : classAnnotation.className()) {
+            String version = this.version;
+
+            // split special format
+            if (s.contains("-")) {
+                String[] split = s.replace(" ", "").split("-");
+                // net.minecraft.network - ?version?
+                // contains - but haven't set version
+                if (split.length == 1)
+                    continue;
+
+                s = split[0];
+                version = split[1];
+            }
+
+            if (classAnnotation.type().getClassName(s, version).isEmpty())
+                continue;
+
+            try {
+                target = this.getClass().getClassLoader().loadClass(classAnnotation.type().getClassName(s, version));
+                break;
+            } catch (ClassNotFoundException e) {}
+        }
 
         // byte buddy
         DynamicType.Builder<T> subclass = new ByteBuddy().subclass(clazz);
