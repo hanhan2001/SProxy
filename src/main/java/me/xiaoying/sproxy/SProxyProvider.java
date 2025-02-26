@@ -132,14 +132,18 @@ public class SProxyProvider {
             if (declaredMethod.getAnnotation(SConstructor.class) != null)
                 subclass = this.setConstructorMethod(subclass, declaredMethod);
 
-            // return if instance is null
-            if (instance == null)
-                continue;
+            if (declaredMethod.getAnnotation(SMethod.class) != null) {
+                if (instance == null && declaredMethod.getAnnotation(SMethod.class).needInstance())
+                    continue;
 
-            else if (declaredMethod.getAnnotation(SMethod.class) != null)
                 subclass = this.setMethod(subclass, declaredMethod, target, instance);
-            else if (declaredMethod.getAnnotation(SFieldMethod.class) != null)
+            }
+            if (declaredMethod.getAnnotation(SFieldMethod.class) != null) {
+                if (instance == null)
+                    continue;
+
                 subclass = this.setFiledMethod(subclass, declaredMethod, target);
+            }
         }
 
         DynamicType.Unloaded<T> make = subclass.make();
@@ -258,7 +262,8 @@ public class SProxyProvider {
                     "instance",
                     "Ljava/lang/Object;");
 
-            methodVisitor.visitTypeInsn(Opcodes.CHECKCAST, instance.getClass().getName().replace('.', '/'));
+            if (instance != null)
+                methodVisitor.visitTypeInsn(Opcodes.CHECKCAST, instance.getClass().getName().replace('.', '/'));
 
             methodVisitor.visitIntInsn(Opcodes.BIPUSH, parameters.size());
             methodVisitor.visitTypeInsn(Opcodes.ANEWARRAY, "java/lang/Object");
