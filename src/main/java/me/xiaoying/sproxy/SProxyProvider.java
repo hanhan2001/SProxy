@@ -477,14 +477,11 @@ public class SProxyProvider {
         Field targetField = target.getDeclaredField(sfield.fieldName());
         targetField.setAccessible(true);
 
-        if (targetField.getType() != field.getType())
-            throw new IllegalArgumentException("target field " + targetField.getType() + " not equals " + field.getType());
-
         Field declaredField = newClass.getClass().getDeclaredField("instance");
         declaredField.setAccessible(true);
         Object object = declaredField.get(newClass);
 
-        field.set(t, targetField.get(object));
+        field.set(t, field.getType().cast(targetField.get(object)));
         return t;
     }
 }
