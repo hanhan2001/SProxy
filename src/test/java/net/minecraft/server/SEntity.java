@@ -11,10 +11,10 @@ public abstract class SEntity implements SProxy {
     @SField(fieldName = "asd")
     public String name;
 
-    @SFieldMethod(filedName = "asd", type = SFieldMethod.Type.GETTER)
+    @SFieldMethod(fieldName = "asd", type = SFieldMethod.Type.GETTER)
     public abstract String getName();
 
-    @SFieldMethod(filedName = "asd", type = SFieldMethod.Type.SETTER)
+    @SFieldMethod(fieldName = "asd", type = SFieldMethod.Type.SETTER)
     public abstract void setName(String name);
 
     @SMethod(methodName = "test")
