@@ -388,9 +388,9 @@ public class SProxyProvider {
                     false);
 
             methodVisitor.visitInsn(Opcodes.ARETURN);
-            methodVisitor.visitMaxs(4, 3);
+            methodVisitor.visitMaxs(parameters.size() + 2, parameters.size() + 1);
             methodVisitor.visitEnd();
-            return new ByteCodeAppender.Size(4, 3);
+            return new ByteCodeAppender.Size(parameters.size() + 2, parameters.size() + 1);
         }));
         return subclass;
     }
